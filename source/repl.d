@@ -57,12 +57,14 @@ bool parseCommand(Markov markov, string[] tokens)
 
 	switch(tokens[0])
 	{
+		case "e":
 		case "exit":
 		{
 			"Done.".writeln;
 
 			return false;
 		}
+		case "c":
 		case "clear":
 		{
 			markov.clear;
@@ -70,6 +72,7 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			return true;
 		}
+		case "m":
 		case "mutation":
 		{
 			if(tokens.length > 1)
@@ -81,6 +84,7 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			return true;
 		}
+		case "x":
 		case "crossover":
 		{
 			if(tokens.length > 1)
@@ -92,6 +96,7 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			return true;
 		}
+		case "s":
 		case "seed":
 		{
 			if(tokens.length > 1)
@@ -103,6 +108,7 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			return true;
 		}
+		case "t":
 		case "train":
 		{
 			auto file = File(tokens[1], "r");
@@ -116,6 +122,7 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			return true;
 		}
+		case "b":
 		case "build":
 		{
 			markov.build;
@@ -127,6 +134,7 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			return true;
 		}
+		case "g":
 		case "generate":
 		{
 			markov
