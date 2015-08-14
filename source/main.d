@@ -1,9 +1,4 @@
 
-import std.algorithm;
-import std.ascii;
-import std.conv;
-import std.stdio;
-
 import markov;
 import repl;
 
