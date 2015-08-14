@@ -19,7 +19,7 @@ Commands:
 
  - `crossover [chance]` : Takes a value for the crossover rate; valid values are between `0.0` and `1.0`. Use `0.2` for best results.
 
- - `mutation [chance]` : Takes a value for the mutation rate; valid values are between `0.0` and `1.0`. Using `0.1` for best results.
+ - `mutation [chance]` : Takes a value for the mutation rate; valid values are between `0.0` and `1.0`. Use `0.1` for best results.
 
  - `seed [text]` : Takes an (unquoted) string as the initial seed for the text.
 
