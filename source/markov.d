@@ -9,12 +9,13 @@ import std.string;
 import std.typecons;
 import std.typetuple;
 
-import strings;
 import counters;
+import strings;
+import util;
 
 struct Element
 {
-	StringId token;
+	String token;
 
 	double frequency;
 
@@ -24,20 +25,12 @@ struct Element
 	}
 }
 
-class FrequencyTable(Keys...)
+struct FrequencyTable(Keys...)
 {
-	alias StringIds = Tuple!Keys;
-
-	private StringTable stringTable;
+	alias Strings = Tuple!Keys;
 
 	private CounterTable!Keys counter;
-	private Element[][StringIds] table;
-
-	this(StringTable stringTable)
-	{
-		this.stringTable = stringTable;
-		this.counter = new CounterTable!Keys(stringTable);
-	}
+	private Element[][Strings] table;
 
 	@property
 	size_t length()
@@ -48,36 +41,32 @@ class FrequencyTable(Keys...)
 	void clear()
 	{
 		counter.clear;
-
-		foreach(key, value; table)
-		{
-			table.remove(key);
-		}
+		table.removeAll;
 	}
 	
-	Element[] opIndex(StringIds key)
+	Element[] opIndex(Strings key)
 	{
 		auto tablePtr = key in table;
 		return tablePtr ? *tablePtr : null;
 	}
 
-	StringId random()
+	String random()
 	{
-		if(table.length < 1) return NullString;
+		if(table.length < 1) return null;
 
 		size_t index = uniform(0L, table.keys.length);
 		Element[] elements = this[table.keys[index]];
-		if(elements.empty) return NullString;
+		if(elements.empty) return null;
 
 		index = uniform(0L, elements.length);
 		return elements[index].token;
 	}
 
-	StringId select(Keys keys)
+	String select(Keys keys)
 	{
-		StringIds key = StringIds(keys);
+		Strings key = Strings(keys);
 		Element[] elements = this[key];
-		if(elements.empty) return NullString;
+		if(elements.empty) return null;
 
 		double value = uniform(0.0, 1.0);
 
@@ -93,16 +82,16 @@ class FrequencyTable(Keys...)
 			}
 		}
 
-		return NullString;
+		return null;
 	}
 
-	void train(StringId[] tokens)
+	void train(String[] tokens)
 	{
 		if(tokens.length < Keys.length) return;
 
 		foreach(index, token; tokens[0 .. $ - Keys.length])
 		{
-			StringIds key;
+			Strings key;
 
 			string generateAssignments()
 			{
@@ -141,24 +130,14 @@ class FrequencyTable(Keys...)
 
 class Markov
 {
-	private StringTable stringTable;
-
 	private double _mutation;
 	private double _crossover;
 
-	private StringId[] _seed;
+	private String[] _seed;
 
-	private FrequencyTable!(StringId) unaryTable;
-	private FrequencyTable!(StringId, StringId) binaryTable;
-	private FrequencyTable!(StringId, StringId, StringId) ternaryTable;
-
-	this()
-	{
-		stringTable = new StringTable;
-		unaryTable = new FrequencyTable!(StringId)(stringTable);
-		binaryTable = new FrequencyTable!(StringId, StringId)(stringTable);
-		ternaryTable = new FrequencyTable!(StringId, StringId, StringId)(stringTable);
-	}
+	private FrequencyTable!(String) unaryTable;
+	private FrequencyTable!(String, String) binaryTable;
+	private FrequencyTable!(String, String, String) ternaryTable;
 
 	@property
 	double mutation()
@@ -187,24 +166,17 @@ class Markov
 	@property
 	string[] seed()
 	{
-		return _seed.map!((id) {
-			return stringTable[id];
-		}).array;
+		return _seed
+			.map!(str => str.toString)
+			.array;
 	}
 
 	@property
 	void seed(string[] tokens)
 	{
-		_seed = tokens.map!((token) {
-			auto ptr = token in stringTable;
-			return ptr ? *ptr : stringTable ~ token;
-		}).array;
-	}
-
-	@property
-	size_t stringsLength()
-	{
-		return stringTable.length;
+		_seed = tokens
+			.map!(token => String.findOrCreate(token))
+			.array;
 	}
 
 	@property
@@ -228,7 +200,7 @@ class Markov
 	void clear()
 	{
 		// Clear string table.
-		stringTable.clear;
+		StringTable.clear;
 
 		// Clear frequency tables.
 		unaryTable.clear;
@@ -238,20 +210,21 @@ class Markov
 
 	void train(string[] tokens)
 	{
-		StringId[] ids = tokens.map!((token) {
-			auto ptr = token in stringTable;
-			return ptr ? *ptr : stringTable ~ token;
-		}).array;
+		// Map to string references.
+		String[] strings = tokens
+			.map!(token => String.findOrCreate(token))
+			.array;
 
-		unaryTable.train(ids);
-		binaryTable.train(ids);
-		ternaryTable.train(ids);
+		// Train frequency tables.
+		unaryTable.train(strings);
+		binaryTable.train(strings);
+		ternaryTable.train(strings);
 	}
 
 	void build()
 	{
-		// Optimize string table.
-		stringTable.rehash;
+		// Rehash string table.
+		StringTable.optimize;
 
 		// Build frequency tables.
 		unaryTable.build;
@@ -261,7 +234,7 @@ class Markov
 
 	string[] generate(int length)
 	{
-		StringId[] output;
+		String[] output;
 
 		// Starting tokens.
 		if(_seed.length > 0)
@@ -275,39 +248,39 @@ class Markov
 
 		while(output.length < length)
 		{
-			StringId token;
+			String token;
 
 			if(output.length >= 3)
 			{
 				auto temp = ternaryTable.select(output[$ - 3], output[$ - 2], output[$ - 1]);
-				if(temp.isNull) token = temp;
+				if(temp !is null) token = temp;
 			}
 
 			// Roll for cross-over.
-			if(output.length >= 2 && (token.isNull || uniform(0.0, 1.0) < _crossover))
+			if(output.length >= 2 && (token is null || uniform(0.0, 1.0) < _crossover))
 			{
 				auto temp = binaryTable.select(output[$ - 2], output[$ - 1]);
-				if(temp.isNull) token = temp;
+				if(temp !is null) token = temp;
 			}
 
 			// Roll for mutation.
-			if(token.isNull || uniform(0.0, 1.0) < _mutation)
+			if(token is null || uniform(0.0, 1.0) < _mutation)
 			{
 				auto temp = unaryTable.select(output[$ - 1]);
-				if(temp.isNull) token = temp;
+				if(temp !is null) token = temp;
 			}
 
-			if(token.isNull)
+			if(token is null)
 			{
 				token = unaryTable.random;
-				enforce(!token.isNull, "No possible tokens.");
+				enforce(token !is null, "No possible tokens.");
 			}
 
 			output ~= token;
 		}
 
-		return output.map!((id) {
-			return stringTable[id];
-		}).array;
+		return output
+			.map!(str => str.toString)
+			.array;
 	}
 }

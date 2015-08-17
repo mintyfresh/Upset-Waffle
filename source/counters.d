@@ -4,35 +4,22 @@ module counters;
 import std.typecons;
 
 import strings;
+import util;
 
-class CounterTable(Keys...)
+struct CounterTable(Keys...)
 {
-	alias StringIds = Tuple!Keys;
+	alias Strings = Tuple!Keys;
 
-	private StringTable stringTable;
-
-	private int[StringIds] totals;
-	private int[StringId][StringIds] counts;
-
-	this(StringTable stringTable)
-	{
-		this.stringTable = stringTable;
-	}
+	private int[Strings] totals;
+	private int[String][Strings] counts;
 
 	void clear()
 	{
-		foreach(key, value; totals)
-		{
-			totals.remove(key);
-		}
-
-		foreach(key, value; counts)
-		{
-			counts.remove(key);
-		}
+		totals.removeAll;
+		counts.removeAll;
 	}
 
-	ref int opIndex(StringIds key)
+	ref int opIndex(Strings key)
 	{
 		auto totalsPtr = key in totals;
 
@@ -47,7 +34,7 @@ class CounterTable(Keys...)
 		}
 	}
 
-	ref int opIndex(StringIds key, StringId token)
+	ref int opIndex(Strings key, String token)
 	{
 		auto countsPtr = key in counts;
 
@@ -73,7 +60,7 @@ class CounterTable(Keys...)
 		}
 	}
 
-	int opApply(scope int delegate(StringIds, int[StringId]) dg)
+	int opApply(scope int delegate(Strings, int[String]) dg)
 	{
 		foreach(key, value; counts)
 		{

@@ -128,14 +128,14 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			foreach(filename; tokens[1 .. $])
 			{
-				auto file = File(tokens[1], "r");
+				auto file = File(filename, "r");
 
 				foreach(paragraph; file.parseFile)
 				{
 					markov.train(paragraph.split);
 				}
 
-				"File %s".writefln(tokens[1]);
+				"File %s".writefln(filename);
 			}
 
 			return true;

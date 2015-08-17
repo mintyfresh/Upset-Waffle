@@ -1,84 +1,132 @@
 
 module strings;
 
-import std.typetuple;
+import util;
 
-alias StringId = ulong;
-alias NullString = Alias!0;
-
-class StringTable
+class String
 {
-	private StringId next = 1;
-	private StringId[string] idTable;
-	private string[StringId] stringTable;
+	size_t _id;
+	string _text;
+
+	private this(size_t id, string text)
+	{
+		_id = id;
+		_text = text;
+	}
+
+	static String find(size_t id)
+	{
+		auto tablePtr = id in StringTable;
+
+		if(tablePtr !is null)
+		{
+			return new String(id, *tablePtr);
+		}
+		else
+		{
+			return null;
+		}
+	}
+
+	static String findOrCreate(string text)
+	{
+		auto tablePtr = text in StringTable;
+
+		if(tablePtr !is null)
+		{
+			return new String(*tablePtr, text);
+		}
+		else
+		{
+			return new String(StringTable ~ text, text);
+		}
+	}
 
 	@property
-	size_t length()
+	size_t id()
 	{
-		return stringTable.length;
+		return _id;
 	}
 
-	void rehash()
+	@property
+	string value()
 	{
-		idTable.rehash;
-		stringTable.rehash;
-	}
-
-	void clear()
-	{
-		foreach(key, value; stringTable)
+		if(_text is null)
 		{
-			stringTable.remove(key);
+			// Resolve the string reference.
+			_text = StringTable[_id];
 		}
 
-		foreach(key, value; idTable)
-		{
-			idTable.remove(key);
-		}
+		return _text;
 	}
 
-	StringId opBinary(string op : "~")(string str)
+	override hash_t toHash()
 	{
-		return stringTable[next] = str, idTable[str] = next, next++;
+		return _id;
 	}
 
-	string *opBinaryRight(string op : "in")(StringId stringId)
+	override int opCmp(Object o)
 	{
-		return stringId in stringTable;
+		String str = cast(String)o;
+		return str && _id - str._id;
 	}
 
-	bool opBinaryRight(string op : "!in")(StringId stringId)
+	override bool opEquals(Object o)
 	{
-		return stringId !in stringTable;
+		String str = cast(String)o;
+		return str && str._id == _id;
 	}
 
-	StringId *opBinaryRight(string op : "in")(string str)
+	override string toString()
 	{
-		return str in idTable;
-	}
-
-	bool opBinaryRight(string op : "!in")(string str)
-	{
-		return str !in idTable;
-	}
-
-	string opIndex(StringId stringId)
-	{
-		return stringTable[stringId];
-	}
-
-	StringId opIndex(string str)
-	{
-		return idTable[str];
-	}
-
-	StringId opOpAssign(string op : "~")(string str)
-	{
-		return this ~ str;
+		return value;
 	}
 }
 
-bool isNull(StringId stringId)
+class StringTable
 {
-	return stringId == NullString;
+private:
+	static size_t next;
+	static string[size_t] table;
+	static size_t[string] lookup;
+
+	static size_t opBinary(string op : "~")(string str)
+	{
+		lookup[str] = next;
+		table[next] = str;
+		return next++;
+	}
+
+	static string *opBinaryRight(string op : "in")(size_t id)
+	{
+		return id in table;
+	}
+
+	static size_t *opBinaryRight(string op : "in")(string str)
+	{
+		return str in lookup;
+	}
+
+	static string opIndex(size_t id)
+	{
+		return table[id];
+	}
+
+	static size_t opIndex(string str)
+	{
+		return lookup[str];
+	}
+
+public:
+	static void clear()
+	{
+		table.removeAll;
+		lookup.removeAll;
+	}
+
+	static void optimize()
+	{
+		table.rehash;
+		lookup.rehash;
+	}
 }
