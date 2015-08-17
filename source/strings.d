@@ -5,41 +5,26 @@ import util;
 
 class String
 {
+private:
 	size_t _id;
 	string _text;
 
-	private this(size_t id, string text)
+	this(size_t id, string text)
 	{
 		_id = id;
 		_text = text;
 	}
 
+public:
 	static String find(size_t id)
 	{
-		auto tablePtr = id in StringTable;
-
-		if(tablePtr !is null)
-		{
-			return new String(id, *tablePtr);
-		}
-		else
-		{
-			return null;
-		}
+		return new String(id, StringTable[id]);
 	}
 
 	static String findOrCreate(string text)
 	{
-		auto tablePtr = text in StringTable;
-
-		if(tablePtr !is null)
-		{
-			return new String(*tablePtr, text);
-		}
-		else
-		{
-			return new String(StringTable ~ text, text);
-		}
+		auto ptr = text in StringTable;
+		return new String(ptr ? *ptr : StringTable ~ text, text);
 	}
 
 	@property
@@ -51,12 +36,6 @@ class String
 	@property
 	string value()
 	{
-		if(_text is null)
-		{
-			// Resolve the string reference.
-			_text = StringTable[_id];
-		}
-
 		return _text;
 	}
 
@@ -79,7 +58,7 @@ class String
 
 	override string toString()
 	{
-		return value;
+		return _text;
 	}
 }
 

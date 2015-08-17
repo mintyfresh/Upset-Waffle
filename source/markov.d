@@ -65,12 +65,9 @@ struct FrequencyTable(Keys...)
 	String select(Keys keys)
 	{
 		Strings key = Strings(keys);
-		Element[] elements = this[key];
-		if(elements.empty) return null;
-
 		double value = uniform(0.0, 1.0);
 
-		foreach(element; elements)
+		foreach(element; this[key])
 		{
 			if(value < element.frequency)
 			{
