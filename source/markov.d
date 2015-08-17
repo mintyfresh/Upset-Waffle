@@ -238,10 +238,6 @@ class Markov
 		{
 			output ~= _seed;
 		}
-		else
-		{
-			output ~= unaryTable.random;
-		}
 
 		while(output.length < length)
 		{
@@ -261,7 +257,7 @@ class Markov
 			}
 
 			// Roll for mutation.
-			if(token is null || uniform(0.0, 1.0) < _mutation)
+			if(output.length >= 1 && (token is null || uniform(0.0, 1.0) < _mutation))
 			{
 				auto temp = unaryTable.select(output[$ - 1]);
 				if(temp !is null) token = temp;
