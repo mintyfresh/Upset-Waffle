@@ -11,31 +11,38 @@ import markov;
 
 string[] joinify(ByLine)(ByLine lines)
 {
-	string[] chunk;
-	string[] output;
-
-	foreach(line; lines)
+	version(Paragraphs)
 	{
-		if(line.length > 0)
+		string[] chunk;
+		string[] output;
+
+		foreach(line; lines)
 		{
-			chunk ~= line.to!string;
-		}
-		else
-		{
-			if(chunk.length > 0)
+			if(line.length > 0)
 			{
-				output ~= chunk.joiner(" ").text;
-				chunk = [ ];
+				chunk ~= line.text;
+			}
+			else
+			{
+				if(chunk.length > 0)
+				{
+					output ~= chunk.joiner(" ").text;
+					chunk = [ ];
+				}
 			}
 		}
-	}
 
-	if(chunk.length > 0)
+		if(chunk.length > 0)
+		{
+			output ~= chunk.joiner(" ").text;
+		}
+
+		return output;
+	}
+	else
 	{
-		output ~= chunk.joiner(" ").text;
+		return [ lines.joiner(" ").text ];
 	}
-
-	return output;
 }
 
 string[] parseFile(File file)
@@ -111,14 +118,25 @@ bool parseCommand(Markov markov, string[] tokens)
 		case "t":
 		case "train":
 		{
-			auto file = File(tokens[1], "r");
-
-			foreach(paragraph; file.parseFile)
+			if(tokens.length < 2)
 			{
-				markov.train(paragraph.split);
+				"Syntax:".writeln;
+				"train [/path/to/file]+".writeln;
+
+				return true;
 			}
 
-			"File %s".writefln(tokens[1]);
+			foreach(filename; tokens[1 .. $])
+			{
+				auto file = File(tokens[1], "r");
+
+				foreach(paragraph; file.parseFile)
+				{
+					markov.train(paragraph.split);
+				}
+
+				"File %s".writefln(tokens[1]);
+			}
 
 			return true;
 		}
@@ -137,6 +155,14 @@ bool parseCommand(Markov markov, string[] tokens)
 		case "g":
 		case "generate":
 		{
+			if(tokens.length < 2)
+			{
+				"Syntax:".witeln;
+				"generate [length]".writeln;
+
+				return true;
+			}
+
 			markov
 				.generate(tokens[1].to!int)
 				.joiner(" ")
