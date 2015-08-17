@@ -157,7 +157,7 @@ bool parseCommand(Markov markov, string[] tokens)
 		{
 			if(tokens.length < 2)
 			{
-				"Syntax:".witeln;
+				"Syntax:".writeln;
 				"generate [length]".writeln;
 
 				return true;
