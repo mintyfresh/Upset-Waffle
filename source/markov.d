@@ -172,6 +172,7 @@ class Markov
 	void seed(string[] tokens)
 	{
 		_seed = tokens
+			.filter!(token => token.length > 0)
 			.map!(token => String.findOrCreate(token))
 			.array;
 	}
@@ -209,6 +210,7 @@ class Markov
 	{
 		// Map to string references.
 		String[] strings = tokens
+			.filter!(token => token.length > 0)
 			.map!(token => String.findOrCreate(token))
 			.array;
 
