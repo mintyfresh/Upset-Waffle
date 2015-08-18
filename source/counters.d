@@ -1,14 +1,12 @@
 
 module counters;
 
-import std.typecons;
-
 import strings;
 import util;
 
-struct CounterTable(Keys...)
+struct CounterTable(int Count)
 {
-	alias Strings = Tuple!Keys;
+	alias Strings = String[Count];
 
 	private int[Strings] totals;
 	private int[String][Strings] counts;
@@ -25,9 +23,9 @@ struct CounterTable(Keys...)
 		counts.rehash;
 	}
 
-	ref int opIndex(Strings key)
+	ref int opIndex(Strings sequence)
 	{
-		auto totalsPtr = key in totals;
+		auto totalsPtr = sequence in totals;
 
 		if(totalsPtr !is null)
 		{
@@ -35,14 +33,14 @@ struct CounterTable(Keys...)
 		}
 		else
 		{
-			totals[key] = 0;
-			return totals[key];
+			totals[sequence] = 0;
+			return totals[sequence];
 		}
 	}
 
-	ref int opIndex(Strings key, String token)
+	ref int opIndex(Strings sequence, String token)
 	{
-		auto countsPtr = key in counts;
+		auto countsPtr = sequence in counts;
 
 		if(countsPtr !is null)
 		{
@@ -61,16 +59,16 @@ struct CounterTable(Keys...)
 		}
 		else
 		{
-			counts[key] = [token: 0];
-			return counts[key][token];
+			counts[sequence] = [token: 0];
+			return counts[sequence][token];
 		}
 	}
 
 	int opApply(scope int delegate(Strings, int[String]) dg)
 	{
-		foreach(key, value; counts)
+		foreach(sequence, token; counts)
 		{
-			int result = dg(key, value);
+			int result = dg(sequence, token);
 			if(result) return result;
 		}
 

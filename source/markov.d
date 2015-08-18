@@ -6,8 +6,6 @@ import std.array;
 import std.exception;
 import std.random;
 import std.string;
-import std.typecons;
-import std.typetuple;
 
 import counters;
 import strings;
@@ -28,11 +26,10 @@ struct Element
 struct MarkovState(int Count)
 {
 private:
-	alias Keys = TemplateSequence!(Count, String);
-	alias Strings = Tuple!Keys;
+	alias Strings = String[Count];
 
-	CounterTable!Keys counter;
 	Element[][Strings] table;
+	CounterTable!Count counter;
 
 public:
 	@property
@@ -47,9 +44,9 @@ public:
 		table.removeAll;
 	}
 	
-	Element[] opIndex(Strings key)
+	Element[] opIndex(Strings sequence)
 	{
-		return table.get(key, null);
+		return table.get(sequence, null);
 	}
 
 	String random()
@@ -64,22 +61,17 @@ public:
 		return elements[index].token;
 	}
 
-	String select(String[] keys...)
+	String select(String[] array)
 	{
-		String[Count] array = keys;
-		return select(Strings(array));
+		Strings sequence = array;
+		return select(sequence);
 	}
 
-	String select(Keys keys)
-	{
-		return select(Strings(keys));
-	}
-
-	String select(Strings keys)
+	String select(Strings sequence)
 	{
 		double value = uniform(0.0, 1.0);
 
-		foreach(element; this[keys])
+		foreach(element; this[sequence])
 		{
 			if(value < element.frequency)
 			{
@@ -102,11 +94,9 @@ public:
 		// Iterate over sequences of tokens.
 		foreach(index, token; tokens[0 .. $ - Count])
 		{
-			String[Count] array = tokens[index .. index + Count];
-			Strings key = Strings(array);
-
-			counter[key, tokens[index + Count]]++;
-			counter[key]++;
+			Strings sequence = tokens[index .. index + Count];
+			counter[sequence, tokens[index + Count]]++;
+			counter[sequence]++;
 		}
 	}
 
