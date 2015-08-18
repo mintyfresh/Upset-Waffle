@@ -9,6 +9,10 @@ Compile and run.
 
 `dmd source/*.d`
 
+Or just use,
+
+`dub`
+
 ### The REPL
 
 | Command   | Short | Arguments        | Description                                                            |
