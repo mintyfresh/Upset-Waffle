@@ -19,6 +19,12 @@ struct CounterTable(Keys...)
 		counts.removeAll;
 	}
 
+	void optimize()
+	{
+		totals.rehash;
+		counts.rehash;
+	}
+
 	ref int opIndex(Strings key)
 	{
 		auto totalsPtr = key in totals;

@@ -25,13 +25,16 @@ struct Element
 	}
 }
 
-struct FrequencyTable(Keys...)
+struct FrequencyTable(int Count)
 {
+private:
+	alias Keys = TemplateSequence!(Count, String);
 	alias Strings = Tuple!Keys;
 
 	private CounterTable!Keys counter;
 	private Element[][Strings] table;
 
+public:
 	@property
 	size_t length()
 	{
@@ -46,8 +49,7 @@ struct FrequencyTable(Keys...)
 	
 	Element[] opIndex(Strings key)
 	{
-		auto tablePtr = key in table;
-		return tablePtr ? *tablePtr : null;
+		return table.get(key, null);
 	}
 
 	String random()
@@ -62,12 +64,22 @@ struct FrequencyTable(Keys...)
 		return elements[index].token;
 	}
 
+	String select(String[] keys...)
+	{
+		String[Count] array = keys;
+		return select(Strings(array));
+	}
+
 	String select(Keys keys)
 	{
-		Strings key = Strings(keys);
+		return select(Strings(keys));
+	}
+
+	String select(Strings keys)
+	{
 		double value = uniform(0.0, 1.0);
 
-		foreach(element; this[key])
+		foreach(element; this[keys])
 		{
 			if(value < element.frequency)
 			{
@@ -84,31 +96,26 @@ struct FrequencyTable(Keys...)
 
 	void train(String[] tokens)
 	{
-		if(tokens.length < Keys.length) return;
+		// Input text too short, skip.
+		if(tokens.length < Count) return;
 
-		foreach(index, token; tokens[0 .. $ - Keys.length])
+		// Iterate over sequences of tokens.
+		foreach(index, token; tokens[0 .. $ - Count])
 		{
-			Strings key;
+			String[Count] array = tokens[index .. index + Count];
+			Strings key = Strings(array);
 
-			string generateAssignments()
-			{
-				string output;
-				foreach(pos; 0 .. Keys.length)
-				{
-					output ~= "key[%1$d] = tokens[index + %1$d];".format(pos);
-				}
-				return output;
-			}
-
-			mixin(generateAssignments);
-
-			counter[key, tokens[index + Keys.length]]++;
+			counter[key, tokens[index + Count]]++;
 			counter[key]++;
 		}
 	}
 
 	void build()
 	{
+		// Improve performance.
+		counter.optimize;
+
+		// Iterate over counters.
 		foreach(index, count; counter)
 		{
 			int total = counter[index];
@@ -119,9 +126,6 @@ struct FrequencyTable(Keys...)
 				table[index] ~= Element(token, frequency);
 			}
 		}
-
-		// Rehash for performance.
-		table.rehash;
 	}
 }
 
@@ -132,9 +136,9 @@ class Markov
 
 	private String[] _seed;
 
-	private FrequencyTable!(String) unaryTable;
-	private FrequencyTable!(String, String) binaryTable;
-	private FrequencyTable!(String, String, String) ternaryTable;
+	private FrequencyTable!1 unaryTable;
+	private FrequencyTable!2 binaryTable;
+	private FrequencyTable!3 ternaryTable;
 
 	@property
 	double mutation()
@@ -198,7 +202,7 @@ class Markov
 	void clear()
 	{
 		// Clear string table.
-		StringTable.clear;
+		StringTable.get.clear;
 
 		// Clear frequency tables.
 		unaryTable.clear;
@@ -214,6 +218,26 @@ class Markov
 			.map!(token => String.findOrCreate(token))
 			.array;
 
+		// Rehash string table.
+		StringTable.get.optimize;
+
+		// Train frequency tables.
+		unaryTable.train(strings);
+		binaryTable.train(strings);
+		ternaryTable.train(strings);
+	}
+
+	void train(Range)(Range tokens)
+	{
+		// Map to string references.
+		String[] strings = tokens
+			.filter!(token => token.length > 0)
+			.map!(token => String.findOrCreate(token))
+			.array;
+
+		// Rehash string table.
+		StringTable.get.optimize;
+
 		// Train frequency tables.
 		unaryTable.train(strings);
 		binaryTable.train(strings);
@@ -222,9 +246,6 @@ class Markov
 
 	void build()
 	{
-		// Rehash string table.
-		StringTable.optimize;
-
 		// Build frequency tables.
 		unaryTable.build;
 		binaryTable.build;
@@ -247,21 +268,21 @@ class Markov
 
 			if(output.length >= 3)
 			{
-				auto temp = ternaryTable.select(output[$ - 3], output[$ - 2], output[$ - 1]);
+				auto temp = ternaryTable.select(output[$ - 3 .. $]);
 				if(temp !is null) token = temp;
 			}
 
 			// Roll for cross-over.
 			if(output.length >= 2 && (token is null || uniform(0.0, 1.0) < _crossover))
 			{
-				auto temp = binaryTable.select(output[$ - 2], output[$ - 1]);
+				auto temp = binaryTable.select(output[$ - 2 .. $]);
 				if(temp !is null) token = temp;
 			}
 
 			// Roll for mutation.
 			if(output.length >= 1 && (token is null || uniform(0.0, 1.0) < _mutation))
 			{
-				auto temp = unaryTable.select(output[$ - 1]);
+				auto temp = unaryTable.select(output[$ - 1 .. $]);
 				if(temp !is null) token = temp;
 			}
 

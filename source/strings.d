@@ -23,7 +23,7 @@ public:
 
 	static String findOrCreate(string text)
 	{
-		auto ptr = text in StringTable;
+		auto ptr = text in StringTable.get;
 
 		if(ptr !is null)
 		{
@@ -33,7 +33,7 @@ public:
 		else
 		{
 			// Create a new string and return it.
-			return new String(StringTable ~ text, text);
+			return new String(StringTable.get ~ text, text);
 		}
 	}
 
@@ -49,7 +49,7 @@ public:
 		if(_text is null)
 		{
 			// Resolve string by id.
-			_text = StringTable[_id];
+			_text = StringTable.get[_id];
 		}
 
 		return _text;
@@ -81,47 +81,61 @@ public:
 class StringTable
 {
 private:
-	static size_t next;
-	static string[size_t] table;
-	static size_t[string] lookup;
+	static StringTable instance;
 
-	static size_t opBinary(string op : "~")(string str)
+	size_t next;
+	string[size_t] table;
+	size_t[string] lookup;
+
+	static this()
+	{
+		instance = new StringTable;
+	}
+
+public:
+	@property
+	static StringTable get()
+	{
+		return instance;
+	}
+
+	void clear()
+	{
+		table.removeAll;
+		lookup.removeAll;
+	}
+
+	void optimize()
+	{
+		table.rehash;
+		lookup.rehash;
+	}
+
+private:
+	size_t opBinary(string op : "~")(string str)
 	{
 		lookup[str] = next;
 		table[next] = str;
 		return next++;
 	}
 
-	static string *opBinaryRight(string op : "in")(size_t id)
+	string *opBinaryRight(string op : "in")(size_t id)
 	{
 		return id in table;
 	}
 
-	static size_t *opBinaryRight(string op : "in")(string str)
+	size_t *opBinaryRight(string op : "in")(string str)
 	{
 		return str in lookup;
 	}
 
-	static string opIndex(size_t id)
+	string opIndex(size_t id)
 	{
 		return table[id];
 	}
 
-	static size_t opIndex(string str)
+	size_t opIndex(string str)
 	{
 		return lookup[str];
-	}
-
-public:
-	static void clear()
-	{
-		table.removeAll;
-		lookup.removeAll;
-	}
-
-	static void optimize()
-	{
-		table.rehash;
-		lookup.rehash;
 	}
 }

@@ -4,56 +4,29 @@ module repl;
 import std.algorithm;
 import std.array;
 import std.conv;
+import std.datetime;
+import std.exception;
 import std.stdio;
 import std.string;
 
 import markov;
 
-string[] joinify(ByLine)(ByLine lines)
-{
-	version(Paragraphs)
-	{
-		string[] chunk;
-		string[] output;
-
-		foreach(line; lines)
-		{
-			if(line.length > 0)
-			{
-				chunk ~= line.text;
-			}
-			else
-			{
-				if(chunk.length > 0)
-				{
-					output ~= chunk.joiner(" ").text;
-					chunk = [ ];
-				}
-			}
-		}
-
-		if(chunk.length > 0)
-		{
-			output ~= chunk.joiner(" ").text;
-		}
-
-		return output;
-	}
-	else
-	{
-		return [ lines.joiner(" ").text ];
-	}
-}
-
-string[] parseFile(File file)
-{
-	return file.byLine.joinify;
-}
-
 void parse(Markov markov)
 {
-	while(markov.parseCommand(readln.split))
+	while(true)
 	{
+		// Handle multiple commands per line.
+		string[] commands = readln.split("&&");
+
+		foreach(command; commands)
+		{
+			// Tokenize and parse the command.
+			if(!parseCommand(markov, command.strip.split))
+			{
+				return;
+			}
+		}
+
 		writeln;
 	}
 }
@@ -118,6 +91,10 @@ bool parseCommand(Markov markov, string[] tokens)
 		case "t":
 		case "train":
 		{
+			int failCount = 0;
+			int successCount = 0;
+			ulong totalTime = 0;
+
 			if(tokens.length < 2)
 			{
 				"Syntax:".writeln;
@@ -128,23 +105,61 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			foreach(filename; tokens[1 .. $])
 			{
-				auto file = File(filename, "r");
+				ulong time;
+				StopWatch watch;
 
-				foreach(paragraph; file.parseFile)
+				try
 				{
-					markov.train(paragraph.split);
-				}
+					// Start a benchmark.
+					watch.start();
+					auto file = File(filename, "r");
 
-				"File %s".writefln(filename);
+					// Train the chain from the file contents.
+					markov.train(
+						file
+						.byLine
+						.map!split
+						.map!text
+					);
+
+					// Display file time.
+					watch.stop();
+					totalTime += time = watch.peek.msecs;
+					"Trained (%dms): `%s`.".writefln(time, filename);
+					watch.reset();
+
+					// Track successes.
+					successCount++;
+				}
+				catch(ErrnoException ex)
+				{
+					"Couldn't read file `%s`.".writefln(filename);
+
+					// Track failures.
+					failCount++;
+				}
 			}
+
+			// Display train time and success/failure rates.
+			"Finished (%dms): Trained from %d files, %d files failed.".writefln(
+				totalTime, successCount, failCount
+			);
 
 			return true;
 		}
 		case "b":
 		case "build":
 		{
+			StopWatch watch;
+
+			// Track build times.
+			watch.start();
 			markov.build;
-			"Tables %d, %d, %d".writefln(
+			watch.stop();
+
+			// Display build time and table sizes.
+			"Finished(%dms): Tables %d, %d, %d.".writefln(
+				watch.peek.msecs,
 				markov.unaryLength,
 				markov.binaryLength,
 				markov.ternaryLength
