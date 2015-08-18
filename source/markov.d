@@ -25,14 +25,14 @@ struct Element
 	}
 }
 
-struct FrequencyTable(int Count)
+struct MarkovState(int Count)
 {
 private:
 	alias Keys = TemplateSequence!(Count, String);
 	alias Strings = Tuple!Keys;
 
-	private CounterTable!Keys counter;
-	private Element[][Strings] table;
+	CounterTable!Keys counter;
+	Element[][Strings] table;
 
 public:
 	@property
@@ -131,15 +131,17 @@ public:
 
 class Markov
 {
-	private double _mutation;
-	private double _crossover;
+private:
+	double _mutation;
+	double _crossover;
 
-	private String[] _seed;
+	String[] _seed;
 
-	private FrequencyTable!1 unaryTable;
-	private FrequencyTable!2 binaryTable;
-	private FrequencyTable!3 ternaryTable;
+	MarkovState!1 unaryTable;
+	MarkovState!2 binaryTable;
+	MarkovState!3 ternaryTable;
 
+public:
 	@property
 	double mutation()
 	{
@@ -210,23 +212,6 @@ class Markov
 		ternaryTable.clear;
 	}
 
-	void train(string[] tokens)
-	{
-		// Map to string references.
-		String[] strings = tokens
-			.filter!(token => token.length > 0)
-			.map!(token => String.findOrCreate(token))
-			.array;
-
-		// Rehash string table.
-		StringTable.get.optimize;
-
-		// Train frequency tables.
-		unaryTable.train(strings);
-		binaryTable.train(strings);
-		ternaryTable.train(strings);
-	}
-
 	void train(Range)(Range tokens)
 	{
 		// Map to string references.
@@ -280,7 +265,7 @@ class Markov
 			}
 
 			// Roll for mutation.
-			if(output.length >= 1 && (token is null || uniform(0.0, 1.0) < _mutation))
+			if(output.length >= 1 && (token is null || uniform(0.0, 1.0) < _crossover / 2))
 			{
 				auto temp = unaryTable.select(output[$ - 1 .. $]);
 				if(temp !is null) token = temp;
