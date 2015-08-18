@@ -237,7 +237,7 @@ public:
 		ternaryTable.build;
 	}
 
-	string[] generate(int length)
+	auto generate(int length)
 	{
 		String[] output;
 
@@ -257,31 +257,34 @@ public:
 				if(temp !is null) token = temp;
 			}
 
-			// Roll for cross-over.
+			// Roll for two-token sequence crossover change.
 			if(output.length >= 2 && (token is null || uniform(0.0, 1.0) < _crossover))
 			{
 				auto temp = binaryTable.select(output[$ - 2 .. $]);
 				if(temp !is null) token = temp;
 			}
 
-			// Roll for mutation.
+			// Roll for single-token sequence crossover chance.
 			if(output.length >= 1 && (token is null || uniform(0.0, 1.0) < _crossover / 2))
 			{
 				auto temp = unaryTable.select(output[$ - 1 .. $]);
 				if(temp !is null) token = temp;
 			}
 
-			if(token is null)
+			// Roll for random token mutation chance.
+			if(token is null || uniform(0.0, 1.0) < _mutation)
 			{
-				token = unaryTable.random;
-				enforce(token !is null, "No possible tokens.");
+				auto temp = unaryTable.random;
+				if(temp !is null) token = temp;
 			}
 
+			// Append resulting token to the output list.
+			enforce(token !is null, "No possible tokens.");
 			output ~= token;
 		}
 
 		return output
 			.map!(str => str.toString)
-			.array;
+			.filter!(str => str.length > 0);
 	}
 }

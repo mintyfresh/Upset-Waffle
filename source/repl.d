@@ -6,6 +6,7 @@ import std.array;
 import std.conv;
 import std.datetime;
 import std.exception;
+import std.range;
 import std.stdio;
 import std.string;
 
@@ -118,8 +119,9 @@ bool parseCommand(Markov markov, string[] tokens)
 					markov.train(
 						file
 						.byLine
-						.map!split
 						.map!text
+						.map!splitter
+						.joiner
 					);
 
 					// Display file time.
