@@ -9,7 +9,7 @@ private:
 	size_t _id;
 	string _text;
 
-	this(size_t id, string text)
+	this(size_t id, string text = null)
 	{
 		_id = id;
 		_text = text;
@@ -18,13 +18,23 @@ private:
 public:
 	static String find(size_t id)
 	{
-		return new String(id, StringTable[id]);
+		return new String(id);
 	}
 
 	static String findOrCreate(string text)
 	{
 		auto ptr = text in StringTable;
-		return new String(ptr ? *ptr : StringTable ~ text, text);
+
+		if(ptr !is null)
+		{
+			// Return the existing string.
+			return new String(*ptr, text);
+		}
+		else
+		{
+			// Create a new string and return it.
+			return new String(StringTable ~ text, text);
+		}
 	}
 
 	@property
@@ -36,6 +46,12 @@ public:
 	@property
 	string value()
 	{
+		if(_text is null)
+		{
+			// Resolve string by id.
+			_text = StringTable[_id];
+		}
+
 		return _text;
 	}
 
@@ -58,7 +74,7 @@ public:
 
 	override string toString()
 	{
-		return _text;
+		return value;
 	}
 }
 
