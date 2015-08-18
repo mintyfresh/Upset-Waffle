@@ -1,0 +1,9 @@
+{
+	"name": "Upset-Waffle",
+	"description": "A simple layered markov text generator, written in D.",
+	"copyright": "Copyright © 2015, Mihail-K",
+  "license": "Unlicense",
+	"authors": ["Mihail K."],
+	"dependencies": {
+	}
+}
