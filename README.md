@@ -23,7 +23,7 @@ Or just use,
 | mutation  | m     | [chance]         | Mutation rate. Valid values are between 0.0 and 1.0.                   |
 | seed      | s     | [token]+         | Takes one or more tokens, used as the starting output tokens.          |
 | generate  | g     | [length]         | Takes a length parameter. Generates that many words of output.         |
-| exit      | e     |                  | Exits the program.                                                     |
+| quit      | q     |                  | Exits the program.                                                     |
 
 ### License
 

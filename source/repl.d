@@ -38,8 +38,8 @@ bool parseCommand(Markov markov, string[] tokens)
 
 	switch(tokens[0])
 	{
-		case "e":
-		case "exit":
+		case "q":
+		case "quit":
 		{
 			"Done.".writeln;
 
