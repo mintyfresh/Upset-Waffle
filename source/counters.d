@@ -20,11 +20,6 @@ struct CounterTable(int Count)
 	private struct Counter
 	{
 		/++
-		 + The sequence this counter is bound to.
-		 ++/
-		Strings sequence;
-
-		/++
 		 + The total number of occurrences of the sequence.
 		 ++/
 		size_t total;
@@ -41,11 +36,6 @@ struct CounterTable(int Count)
 	private struct Frequency
 	{
 		/++
-		 + The token this frequency is bound to.
-		 ++/
-		String token;
-
-		/++
 		 + The frequency with which this token occurs.
 		 ++/
 		size_t occurrences;
@@ -54,24 +44,52 @@ struct CounterTable(int Count)
 	/++
 	 + Provides an interface for safely operating on counters.
 	 ++/
-	struct CounterRef
+	class CounterRef
 	{
+		/++
+		 + The counter table that issued this counter reference.
+		 ++/
+		private CounterTable!Count *_table;
+
 		/++
 		 + Stores a pointer to a counter in the counter table.
 		 ++/
-		private Counter *counter;
+		private Counter *_counter;
 
 		/++
-		 + Alias the counter total to this.
+		 + The sequence the counter is bound to.
 		 ++/
-		alias total this;
+		private Strings _sequence;
 
 		/++
 		 + Hidden constructor used to issue counter references.
 		 ++/
-		private this(Counter *counter)
+		private this(CounterTable!Count *table, Counter *counter, Strings sequence)
 		{
-			this.counter = counter;
+			_table = table;
+			_counter = counter;
+			_sequence = sequence;
+		}
+
+		/++
+		 + Creates a counter entry in the table for this reference.
+		 ++/
+		private void initialize()
+		{
+			// Create the counter in the table.
+			_counter = _table.create(_sequence);
+		}
+
+		/++
+		 + Creates a frequency entry at the given following token.
+		 ++/
+		private Frequency *create(String token)
+		{
+			// Initialize the counter now.
+			if(_counter is null) initialize;
+
+			_counter.tokens[token] = Frequency(0);
+			return &_counter.tokens[token];
 		}
 
 		/++
@@ -89,7 +107,7 @@ struct CounterTable(int Count)
 		@property
 		size_t length()
 		{
-			return counter.tokens.length;
+			return _counter ? _counter.tokens.length : 0;
 		}
 
 		/++
@@ -98,7 +116,7 @@ struct CounterTable(int Count)
 		@property
 		Strings sequence()
 		{
-			return counter.sequence;
+			return _sequence;
 		}
 
 		/++
@@ -107,7 +125,7 @@ struct CounterTable(int Count)
 		@property
 		size_t total()
 		{
-			return counter.total;
+			return _counter ? _counter.total : 0;
 		}
 
 		/++
@@ -115,10 +133,21 @@ struct CounterTable(int Count)
 		 ++/
 		int opApply(scope int delegate(FrequencyRef) dg)
 		{
-			foreach(key, value; counter.tokens)
+			if(_counter !is null)
 			{
-				int result = dg(FrequencyRef(&this, &value));
-				if(result) return result;
+				// Allocate a frequency reference ahead of time.
+				FrequencyRef frequency = new FrequencyRef(this, null, null);
+
+				// Iterate over the counter's frequencies.
+				foreach(key, value; _counter.tokens)
+				{
+					// Inject current iteration values.
+					frequency._frequency = &value;
+					frequency._token = key;
+
+					int result = dg(frequency);
+					if(result) return result;
+				}
 			}
 
 			return 0;
@@ -129,7 +158,7 @@ struct CounterTable(int Count)
 		 ++/
 		String opIndex(size_t index)
 		{
-			return counter.tokens.keys[index];
+			return _counter ? _counter.tokens.keys[index] : null;
 		}
 
 		/++
@@ -137,36 +166,41 @@ struct CounterTable(int Count)
 		 ++/
 		FrequencyRef opIndex(String token)
 		{
-			auto ptr = token in counter.tokens;
+			if(_counter !is null)
+			{
+				auto ptr = token in _counter.tokens;
 
-			if(ptr !is null)
-			{
-				// Issue a frequency reference.
-				return FrequencyRef(&this, ptr);
+				if(ptr !is null)
+				{
+					// Issue a frequency reference.
+					return new FrequencyRef(this, ptr, token);
+				}
 			}
-			else
-			{
-				// Create a frequency for the new token.
-				counter.tokens[token] = Frequency(token);
-				return FrequencyRef(&this, &counter.tokens[token]);
-			}
+			
+			// Issue a lazy frequency reference.
+			return new FrequencyRef(this, null, token);
 		}
 	}
 
 	/++
 	 + Provides an interface for safely operating on frequencies.
 	 ++/
-	struct FrequencyRef
+	class FrequencyRef
 	{
 		/++
 		 + The counter reference that issued this frequency reference.
 		 ++/
-		private CounterRef *counter;
+		private CounterRef _counter;
 
 		/++
 		 + Stores a pointer to a frequency in the frequency table.
 		 ++/
-		private Frequency *frequency;
+		private Frequency *_frequency;
+
+		/++
+		 + The token the frequency is bound to.
+		 ++/
+		private String _token;
 
 		/++
 		 + Alias the frequency's occurrences to this.
@@ -176,10 +210,20 @@ struct CounterTable(int Count)
 		/++
 		 + Hide the constructor used to issue frequency references.
 		 ++/
-		this(CounterRef *counter, Frequency *frequency)
+		this(CounterRef counter, Frequency *frequency, String token)
 		{
-			this.counter = counter;
-			this.frequency = frequency;
+			_counter = counter;
+			_frequency = frequency;
+			_token = token;
+		}
+
+		/++
+		 + Creates a frequency entry in the table for this reference.
+		 ++/
+		private void initialize()
+		{
+			// Create the frequency in the counter.
+			_frequency = _counter.create(_token);
 		}
 
 		/++
@@ -188,7 +232,7 @@ struct CounterTable(int Count)
 		@property
 		size_t occurrences()
 		{
-			return frequency.occurrences;
+			return _frequency ? _frequency.occurrences : 0;
 		}
 
 		/++
@@ -197,7 +241,7 @@ struct CounterTable(int Count)
 		@property
 		Strings sequence()
 		{
-			return counter.sequence;
+			return _counter.sequence;
 		}
 
 		/++
@@ -206,7 +250,7 @@ struct CounterTable(int Count)
 		@property
 		String token()
 		{
-			return frequency.token;
+			return _token;
 		}
 
 		/++
@@ -215,7 +259,7 @@ struct CounterTable(int Count)
 		@property
 		size_t total()
 		{
-			return counter.total;
+			return _counter.total;
 		}
 
 		/++
@@ -223,17 +267,11 @@ struct CounterTable(int Count)
 		 ++/
 		size_t opUnary(string op : "++")()
 		{
-			counter.counter.total++;
-			return frequency.occurrences++;
-		}
+			// Initialize the frequency now.
+			if(_frequency is null) initialize;
 
-		/++
-		 + Decrements the token's number of occurrences.
-		 ++/
-		size_t opUnary(string op : "--")()
-		{
-			counter.counter.total--;
-			return frequency.occurrences--;
+			_counter._counter.total++;
+			return _frequency.occurrences++;
 		}
 	}
 
@@ -241,6 +279,15 @@ struct CounterTable(int Count)
 	 + A table for frequency counters, indexed by sequences.
 	 ++/
 	private Counter[Strings] table;
+
+	/++
+	 + Creates a counter entry at the given sequence.
+	 ++/
+	private Counter *create(Strings sequence)
+	{
+		table[sequence] = Counter(0);
+		return &table[sequence];
+	}
 
 	/++
 	 + Checks if the counter table is empty.
@@ -293,14 +340,13 @@ struct CounterTable(int Count)
 
 		if(ptr !is null)
 		{
-			// Return a ref.
-			return CounterRef(ptr);
+			// Return an existing ref.
+			return new CounterRef(&this, ptr, sequence);
 		}
 		else
 		{
-			// Initialize and return a ref.
-			table[sequence] = Counter(sequence, 0);
-			return CounterRef(&table[sequence]);
+			// Lazily initialize a ref.
+			return new CounterRef(&this, null, sequence);
 		}
 	}
 

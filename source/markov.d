@@ -62,21 +62,21 @@ struct MarkovState(int Count)
 	String select(Strings sequence)
 	{
 		auto counter = counters[sequence];
-		size_t value = uniform(0, counter);
+		size_t value = uniform(0, counter.total);
 
 		foreach(frequency; counter)
 		{
-			if(value < frequency)
+			if(value < frequency.occurrences)
 			{
 				return frequency.token;
 			}
 			else
 			{
-				value -= frequency;
+				value -= frequency.occurrences;
 			}
 		}
 
-		return null;
+		assert(0);
 	}
 
 	void train(String[] tokens)
@@ -88,7 +88,8 @@ struct MarkovState(int Count)
 		foreach(index, token; tokens[0 .. $ - Count])
 		{
 			Strings sequence = tokens[index .. index + Count];
-			counters[sequence, tokens[index + Count]]++;
+			auto frequency = counters[sequence, tokens[index + Count]];
+			frequency++;
 		}
 	}
 }
