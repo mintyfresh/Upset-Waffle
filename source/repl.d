@@ -149,26 +149,6 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			return true;
 		}
-		case "b":
-		case "build":
-		{
-			StopWatch watch;
-
-			// Track build times.
-			watch.start();
-			markov.build;
-			watch.stop();
-
-			// Display build time and table sizes.
-			"Finished(%dms): Tables %d, %d, %d.".writefln(
-				watch.peek.msecs,
-				markov.unaryLength,
-				markov.binaryLength,
-				markov.ternaryLength
-			);
-
-			return true;
-		}
 		case "g":
 		case "generate":
 		{

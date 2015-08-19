@@ -3,6 +3,7 @@ module markov;
 
 import std.algorithm;
 import std.array;
+import std.conv;
 import std.exception;
 import std.random;
 import std.string;
@@ -25,40 +26,32 @@ struct Element
 
 struct MarkovState(int Count)
 {
-private:
 	alias Strings = String[Count];
 
-	Element[][Strings] table;
-	CounterTable!Count counter;
+	private CounterTable!Count counters;
 
-public:
 	@property
 	size_t length()
 	{
-		return table.length;
+		return counters.length;
 	}
 
 	void clear()
 	{
-		counter.clear;
-		table.removeAll;
-	}
-	
-	Element[] opIndex(Strings sequence)
-	{
-		return table.get(sequence, null);
+		counters.clear;
 	}
 
 	String random()
 	{
-		if(table.length < 1) return null;
+		// Nothing to fetch.
+		if(counters.empty) return null;
 
-		size_t index = uniform(0L, table.keys.length);
-		Element[] elements = this[table.keys[index]];
-		if(elements.empty) return null;
+		size_t index = uniform(0L, counters.length);
+		auto counter = counters[index];
+		if(counter.empty) return null;
 
-		index = uniform(0L, elements.length);
-		return elements[index].token;
+		index = uniform(0L, counter.length);
+		return counter[index];
 	}
 
 	String select(String[] array)
@@ -69,17 +62,18 @@ public:
 
 	String select(Strings sequence)
 	{
-		double value = uniform(0.0, 1.0);
+		auto counter = counters[sequence];
+		size_t value = uniform(0, counter);
 
-		foreach(element; this[sequence])
+		foreach(frequency; counter)
 		{
-			if(value < element.frequency)
+			if(value < frequency)
 			{
-				return element.token;
+				return frequency.token;
 			}
 			else
 			{
-				value -= element.frequency;
+				value -= frequency;
 			}
 		}
 
@@ -95,26 +89,7 @@ public:
 		foreach(index, token; tokens[0 .. $ - Count])
 		{
 			Strings sequence = tokens[index .. index + Count];
-			counter[sequence, tokens[index + Count]]++;
-			counter[sequence]++;
-		}
-	}
-
-	void build()
-	{
-		// Improve performance.
-		counter.optimize;
-
-		// Iterate over counters.
-		foreach(index, count; counter)
-		{
-			int total = counter[index];
-
-			foreach(token, value; count)
-			{
-				double frequency = value * 1.0 / (total ? total : 1.0);
-				table[index] ~= Element(token, frequency);
-			}
+			counters[sequence][tokens[index + Count]]++;
 		}
 	}
 }
@@ -217,14 +192,6 @@ public:
 		unaryTable.train(strings);
 		binaryTable.train(strings);
 		ternaryTable.train(strings);
-	}
-
-	void build()
-	{
-		// Build frequency tables.
-		unaryTable.build;
-		binaryTable.build;
-		ternaryTable.build;
 	}
 
 	auto generate(int length)
