@@ -153,6 +153,9 @@ struct CounterTable(int Count)
 		}
 	}
 
+	/++
+	 + Provides an interface for safely operating on frequencies.
+	 ++/
 	struct FrequencyRef
 	{
 		/++
@@ -299,5 +302,13 @@ struct CounterTable(int Count)
 			table[sequence] = Counter(sequence, 0);
 			return CounterRef(&table[sequence]);
 		}
+	}
+
+	/++
+	 + Convinience operator to fetch a frequency reference.
+	 ++/
+	FrequencyRef opIndex(Strings sequence, String token)
+	{
+		return this[sequence][token];
 	}
 }

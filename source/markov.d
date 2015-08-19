@@ -3,7 +3,6 @@ module markov;
 
 import std.algorithm;
 import std.array;
-import std.conv;
 import std.exception;
 import std.random;
 import std.string;
@@ -89,7 +88,7 @@ struct MarkovState(int Count)
 		foreach(index, token; tokens[0 .. $ - Count])
 		{
 			Strings sequence = tokens[index .. index + Count];
-			counters[sequence][tokens[index + Count]]++;
+			counters[sequence, tokens[index + Count]]++;
 		}
 	}
 }
