@@ -1,21 +1,26 @@
 
 module strings;
 
-import util;
+version(UseMySQL)
+{
+	public import database.strings;
+}
+else
+{
+	public import memory.strings;
+}
 
 class String
 {
-private:
-	size_t _id;
-	string _text;
+	private size_t _id;
+	private string _text;
 
-	this(size_t id, string text = null)
+	private this(size_t id, string text = null)
 	{
 		_id = id;
 		_text = text;
 	}
 
-public:
 	static String find(size_t id)
 	{
 		return new String(id);
@@ -78,64 +83,8 @@ public:
 	}
 }
 
-class StringTable
+hash_t toHash(String str)
 {
-private:
-	static StringTable instance;
-
-	size_t next;
-	string[size_t] table;
-	size_t[string] lookup;
-
-	static this()
-	{
-		instance = new StringTable;
-	}
-
-public:
-	@property
-	static StringTable get()
-	{
-		return instance;
-	}
-
-	void clear()
-	{
-		table.removeAll;
-		lookup.removeAll;
-	}
-
-	void optimize()
-	{
-		table.rehash;
-		lookup.rehash;
-	}
-
-private:
-	size_t opBinary(string op : "~")(string str)
-	{
-		lookup[str] = next;
-		table[next] = str;
-		return next++;
-	}
-
-	string *opBinaryRight(string op : "in")(size_t id)
-	{
-		return id in table;
-	}
-
-	size_t *opBinaryRight(string op : "in")(string str)
-	{
-		return str in lookup;
-	}
-
-	string opIndex(size_t id)
-	{
-		return table[id];
-	}
-
-	size_t opIndex(string str)
-	{
-		return lookup[str];
-	}
+	if(str is null) assert(0);
+	return str.toHash;
 }

@@ -5,5 +5,24 @@
   "license": "Unlicense",
 	"authors": ["Mihail K."],
 	"dependencies": {
-	}
+	},
+  "configurations": [
+    {
+      "name": "memory",
+      "targetType": "executable",
+      "versions": ["UseMemory"]
+    },
+    {
+      "name": "mysql",
+      "targetType": "executable",
+      "mainSourceFile": "source/main.d",
+      "versions": ["UseMySQL", "VibeCustomMain"],
+      "dependencies": {
+        "mysql-native": "~>0.1.3"
+      },
+      "subConfigurations": {
+        "mysql-native": "library"
+      }
+    }
+  ]
 }

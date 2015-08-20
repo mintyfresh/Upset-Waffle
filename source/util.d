@@ -10,3 +10,8 @@ auto removeAll(V, K)(V[K] assoc)
 		assoc.remove(key);
 	}
 }
+
+auto transform(alias Pred, Param)(Param param)
+{
+	return Pred(param);
+}

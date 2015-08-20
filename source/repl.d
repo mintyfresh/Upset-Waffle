@@ -167,6 +167,46 @@ bool parseCommand(Markov markov, string[] tokens)
 
 			return true;
 		}
+		version(UseMySQL)
+		{
+			import database.connection;
+
+			case "db:c":
+			case "db:connect":
+			{
+				if(tokens.length < 2)
+				{
+					"Syntax:".writeln;
+					"db:connect [connection_string]".writeln;
+
+					return true;
+				}
+
+				// Connect to database.
+				ConnectionManager.get.connect(tokens[1]);
+				"Connected to database.".writeln;
+
+				return true;
+			}
+			case "db:i":
+			case "db:init":
+			{
+				// Create tables.
+				markov.create;
+				"Created tables.".writeln;
+
+				return true;
+			}
+			case "db:d":
+			case "db:destroy":
+			{
+				// Destroy tables.
+				markov.destroy;
+				"Removed tables.".writeln;
+
+				return true;
+			}
+		}
 		default:
 		{
 			"Unknown command: %s".writefln(tokens[0]);

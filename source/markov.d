@@ -40,17 +40,22 @@ struct MarkovState(int Count)
 		counters.clear;
 	}
 
+	version(UseMySQL)
+	{
+		void create()
+		{
+			counters.create;
+		}
+
+		void destroy()
+		{
+			counters.destroy;
+		}
+	}
+
 	String random()
 	{
-		// Nothing to fetch.
-		if(counters.empty) return null;
-
-		size_t index = uniform(0L, counters.length);
-		auto counter = counters[index];
-		if(counter.empty) return null;
-
-		index = uniform(0L, counter.length);
-		return counter[index];
+		return counters.random;
 	}
 
 	String select(String[] array)
@@ -61,10 +66,12 @@ struct MarkovState(int Count)
 
 	String select(Strings sequence)
 	{
-		auto counter = counters[sequence];
-		size_t value = uniform(0, counter.total);
+		auto list = counters.list(sequence);
 
-		foreach(frequency; counter)
+		if(list.length < 1) return null;
+		size_t value = uniform(0, list.length);
+
+		foreach(frequency; list)
 		{
 			if(value < frequency.occurrences)
 			{
@@ -85,11 +92,12 @@ struct MarkovState(int Count)
 		if(tokens.length < Count) return;
 
 		// Iterate over sequences of tokens.
-		foreach(index, token; tokens[0 .. $ - Count])
+		foreach(index; 0 .. tokens.length - Count)
 		{
 			Strings sequence = tokens[index .. index + Count];
-			auto frequency = counters[sequence, tokens[index + Count]];
-			frequency++;
+			String token = tokens[index + Count];
+			
+			counters.set(sequence, token);
 		}
 	}
 }
@@ -175,6 +183,27 @@ public:
 		unaryTable.clear;
 		binaryTable.clear;
 		ternaryTable.clear;
+	}
+
+	version(UseMySQL)
+	{
+		void create()
+		{
+			StringTable.get.create;
+
+			unaryTable.create;
+			binaryTable.create;
+			ternaryTable.create;
+		}
+
+		void destroy()
+		{
+			ternaryTable.destroy;
+			binaryTable.destroy;
+			unaryTable.destroy;
+
+			StringTable.get.destroy;
+		}
 	}
 
 	void train(Range)(Range tokens)
